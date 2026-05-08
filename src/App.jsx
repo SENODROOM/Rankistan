@@ -11,6 +11,17 @@ function App() {
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Update dynamic page title based on active tab
+  React.useEffect(() => {
+    const titles = {
+      leaderboard: 'Rankistan | Leaderboard',
+      register: 'Rankistan | Register',
+      map: 'Rankistan | Dev Map',
+      about: 'Rankistan | About',
+    };
+    document.title = titles[activeTab] || 'Rankistan';
+  }, [activeTab]);
+
   const handleChangeTab = useCallback((tab) => {
     setActiveTab(tab);
   }, []);
