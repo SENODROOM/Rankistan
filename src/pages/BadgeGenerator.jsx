@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
-const WORKER_BASE = 'https://rankistan-summary-api.academics-ali.workers.dev';
+const WORKER_BASE = "https://rankistan-summary-api.academics-ali.workers.dev";
 
 const STYLES = [
-  { id: 'flat', label: 'Flat' },
-  { id: 'for-the-badge', label: 'For The Badge' },
-  { id: 'flat-square', label: 'Flat Square' },
-  { id: 'plastic', label: 'Plastic' },
+  { id: "flat", label: "Flat" },
+  { id: "for-the-badge", label: "For The Badge" },
+  { id: "flat-square", label: "Flat Square" },
+  { id: "plastic", label: "Plastic" },
 ];
 
 const WORKER_CODE = `// ─── Add inside the fetch handler, BEFORE the /api/dev-summary check ────────
@@ -61,34 +61,30 @@ async function handleBadgeRequest(request, env) {
   }
 }`;
 
+// The worker returns shields.io Endpoint schema (schemaVersion: 1),
+// so we must use /endpoint?url=... — NOT /badge/dynamic/json.
+// Dynamic JSON and Endpoint are two different shields.io badge types.
 function getBadgeUrl(username, style) {
-  const u = encodeURIComponent((username || 'yourusername').trim());
+  const u = encodeURIComponent((username || "yourusername").trim());
   const endpoint = encodeURIComponent(`${WORKER_BASE}/api/badge/${u}`);
   return (
-    `https://img.shields.io/badge/dynamic/json` +
-    `?url=${endpoint}` +
-    `&query=%24.message` +
-    `&label=Rankistan` +
-    `&color=1a7f4e` +
-    `&labelColor=0f6e56` +
-    `&style=${style}` +
-    `&logo=github` +
-    `&logoColor=white` +
-    `&cacheSeconds=300`
+    `https://img.shields.io/endpoint` + `?url=${endpoint}` + `&style=${style}`
   );
 }
 
 function getSnippet(username, style, fmt) {
   const img = getBadgeUrl(username, style);
-  const link = 'https://rankistan.dev';
-  const alt = 'Rankistan rank badge';
-  if (fmt === 'md')   return `[![${alt}](${img})](${link})`;
-  if (fmt === 'html') return `<a href="${link}">\n  <img src="${img}" alt="${alt}">\n</a>`;
-  if (fmt === 'rst')  return `.. image:: ${img}\n   :target: ${link}\n   :alt: ${alt}`;
-  return '';
+  const link = "https://rankistan.dev";
+  const alt = "Rankistan rank badge";
+  if (fmt === "md") return `[![${alt}](${img})](${link})`;
+  if (fmt === "html")
+    return `<a href="${link}">\n  <img src="${img}" alt="${alt}">\n</a>`;
+  if (fmt === "rst")
+    return `.. image:: ${img}\n   :target: ${link}\n   :alt: ${alt}`;
+  return "";
 }
 
-function CopyButton({ text, className = '' }) {
+function CopyButton({ text, className = "" }) {
   const [copied, setCopied] = useState(false);
   const handle = () => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -99,7 +95,7 @@ function CopyButton({ text, className = '' }) {
     <button
       type="button"
       onClick={handle}
-      className={`font-mono text-[10px] uppercase tracking-widest border border-outline-variant px-3 py-1 transition-colors hover:border-primary hover:text-primary ${copied ? 'text-tertiary border-tertiary' : 'text-outline'} ${className}`}
+      className={`font-mono text-[10px] uppercase tracking-widest border border-outline-variant px-3 py-1 transition-colors hover:border-primary hover:text-primary ${copied ? "text-tertiary border-tertiary" : "text-outline"} ${className}`}
     >
       {copied ? (
         <span className="flex items-center gap-1.5">
@@ -108,7 +104,9 @@ function CopyButton({ text, className = '' }) {
         </span>
       ) : (
         <span className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-xs">content_copy</span>
+          <span className="material-symbols-outlined text-xs">
+            content_copy
+          </span>
           Copy
         </span>
       )}
@@ -116,11 +114,13 @@ function CopyButton({ text, className = '' }) {
   );
 }
 
-function CodeBlock({ code, language = '' }) {
+function CodeBlock({ code, language = "" }) {
   return (
     <div className="relative group bg-surface-container-lowest border border-outline-variant overflow-x-auto">
       <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant bg-surface-container-low">
-        <span className="font-mono text-[10px] text-outline uppercase tracking-widest">{language}</span>
+        <span className="font-mono text-[10px] text-outline uppercase tracking-widest">
+          {language}
+        </span>
         <CopyButton text={code} />
       </div>
       <pre className="p-4 font-mono text-xs text-on-surface-variant leading-relaxed whitespace-pre-wrap break-all">
@@ -131,14 +131,14 @@ function CodeBlock({ code, language = '' }) {
 }
 
 export default function BadgeGenerator() {
-  const [username, setUsername] = useState('');
-  const [style, setStyle] = useState('flat');
-  const [fmt, setFmt] = useState('md');
+  const [username, setUsername] = useState("");
+  const [style, setStyle] = useState("flat");
+  const [fmt, setFmt] = useState("md");
   const [badgeLoaded, setBadgeLoaded] = useState(false);
   const [badgeError, setBadgeError] = useState(false);
   const inputRef = useRef(null);
 
-  const displayUser = username.trim() || 'yourusername';
+  const displayUser = username.trim() || "yourusername";
   const badgeUrl = getBadgeUrl(displayUser, style);
   const snippet = getSnippet(displayUser, style, fmt);
 
@@ -152,7 +152,6 @@ export default function BadgeGenerator() {
       <div className="absolute inset-0 grid-lines pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-6 py-12 relative z-10">
-
         {/* ── Page Header ── */}
         <div className="mb-12 border-l-4 border-primary pl-6">
           <h1 className="font-headline text-5xl font-extrabold tracking-tighter uppercase text-on-surface mb-2">
@@ -164,10 +163,8 @@ export default function BadgeGenerator() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border border-outline-variant">
-
           {/* ── Left Panel: controls ── */}
           <div className="lg:col-span-5 p-8 bg-surface-container-lowest border-b lg:border-b-0 lg:border-r border-outline-variant flex flex-col gap-8">
-
             {/* Username input */}
             <div>
               <label className="font-mono text-xs text-tertiary uppercase tracking-tighter mb-4 block">
@@ -183,7 +180,9 @@ export default function BadgeGenerator() {
                   placeholder="GITHUB_USERNAME"
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+                  onChange={(e) =>
+                    setUsername(e.target.value.replace(/\s/g, ""))
+                  }
                   autoComplete="off"
                   spellCheck={false}
                 />
@@ -203,12 +202,14 @@ export default function BadgeGenerator() {
                     onClick={() => setStyle(s.id)}
                     className={`py-3 px-4 font-mono text-[10px] uppercase tracking-widest border transition-colors text-left ${
                       style === s.id
-                        ? 'border-primary text-primary bg-primary/10'
-                        : 'border-outline-variant text-outline hover:border-outline hover:text-on-surface-variant'
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-outline-variant text-outline hover:border-outline hover:text-on-surface-variant"
                     }`}
                   >
                     {style === s.id && (
-                      <span className="material-symbols-outlined text-xs mr-1 align-middle">radio_button_checked</span>
+                      <span className="material-symbols-outlined text-xs mr-1 align-middle">
+                        radio_button_checked
+                      </span>
                     )}
                     {s.label}
                   </button>
@@ -222,18 +223,18 @@ export default function BadgeGenerator() {
                 Snippet Format
               </label>
               <div className="flex gap-2">
-                {['md', 'html', 'rst'].map((f) => (
+                {["md", "html", "rst"].map((f) => (
                   <button
                     key={f}
                     type="button"
                     onClick={() => setFmt(f)}
                     className={`flex-1 py-2 font-mono text-[10px] uppercase tracking-widest border transition-colors ${
                       fmt === f
-                        ? 'border-secondary text-secondary bg-secondary/10'
-                        : 'border-outline-variant text-outline hover:border-outline hover:text-on-surface-variant'
+                        ? "border-secondary text-secondary bg-secondary/10"
+                        : "border-outline-variant text-outline hover:border-outline hover:text-on-surface-variant"
                     }`}
                   >
-                    {f === 'md' ? 'Markdown' : f === 'html' ? 'HTML' : 'reST'}
+                    {f === "md" ? "Markdown" : f === "html" ? "HTML" : "reST"}
                   </button>
                 ))}
               </div>
@@ -243,17 +244,23 @@ export default function BadgeGenerator() {
             <div className="border border-outline-variant/50 bg-surface p-4 space-y-2">
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-1.5 h-1.5 bg-tertiary animate-pulse" />
-                <span className="font-mono text-[10px] text-tertiary uppercase tracking-widest">How It Works</span>
+                <span className="font-mono text-[10px] text-tertiary uppercase tracking-widest">
+                  How It Works
+                </span>
               </div>
               {[
-                ['1', 'Your README loads the badge URL from shields.io'],
-                ['2', 'Shields.io calls the Rankistan Worker endpoint'],
-                ['3', 'Worker reads your rank from data.json (cached 5 min)'],
-                ['4', 'Badge updates automatically every leaderboard cycle'],
+                ["1", "Your README loads the badge URL from shields.io"],
+                ["2", "Shields.io calls the Rankistan Worker endpoint"],
+                ["3", "Worker reads your rank from data.json (cached 5 min)"],
+                ["4", "Badge updates automatically every leaderboard cycle"],
               ].map(([n, text]) => (
                 <div key={n} className="flex items-start gap-3">
-                  <span className="font-mono text-[10px] text-on-primary bg-primary px-1.5 py-0.5 shrink-0">{n}</span>
-                  <span className="font-body text-xs text-outline leading-relaxed">{text}</span>
+                  <span className="font-mono text-[10px] text-on-primary bg-primary px-1.5 py-0.5 shrink-0">
+                    {n}
+                  </span>
+                  <span className="font-body text-xs text-outline leading-relaxed">
+                    {text}
+                  </span>
                 </div>
               ))}
             </div>
@@ -261,7 +268,6 @@ export default function BadgeGenerator() {
 
           {/* ── Right Panel: preview + snippet ── */}
           <div className="lg:col-span-7 p-8 bg-surface flex flex-col gap-8">
-
             {/* Badge preview */}
             <div>
               <h3 className="font-mono text-[10px] text-outline uppercase tracking-widest mb-4">
@@ -273,10 +279,12 @@ export default function BadgeGenerator() {
                     key={badgeUrl}
                     src={badgeUrl}
                     alt="Rankistan rank badge preview"
-                    className={`transition-opacity duration-300 ${badgeLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    className={`transition-opacity duration-300 ${badgeLoaded ? "opacity-100" : "opacity-0"}`}
                     onLoad={() => setBadgeLoaded(true)}
                     onError={() => setBadgeError(true)}
-                    style={{ height: style === 'for-the-badge' ? '28px' : '20px' }}
+                    style={{
+                      height: style === "for-the-badge" ? "28px" : "20px",
+                    }}
                   />
                 ) : (
                   <span className="font-mono text-xs text-outline">
@@ -296,18 +304,26 @@ export default function BadgeGenerator() {
                   <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
                   <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
                   <div className="w-3 h-3 rounded-full bg-[#27c840]" />
-                  <span className="font-mono text-[10px] text-[#484f58] ml-2">README.md — github.com/{displayUser}</span>
+                  <span className="font-mono text-[10px] text-[#484f58] ml-2">
+                    README.md — github.com/{displayUser}
+                  </span>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-[#21262d] border border-[#30363d] flex items-center justify-center shrink-0">
-                    <span className="font-mono text-[10px] text-[#8b949e]">{displayUser.slice(0, 2).toUpperCase()}</span>
+                    <span className="font-mono text-[10px] text-[#8b949e]">
+                      {displayUser.slice(0, 2).toUpperCase()}
+                    </span>
                   </div>
                   <div>
-                    <p className="font-mono text-sm text-[#e6edf3] mb-2">{displayUser}</p>
+                    <p className="font-mono text-sm text-[#e6edf3] mb-2">
+                      {displayUser}
+                    </p>
                     <img
                       src={badgeUrl}
                       alt="rank badge"
-                      style={{ height: style === 'for-the-badge' ? '28px' : '20px' }}
+                      style={{
+                        height: style === "for-the-badge" ? "28px" : "20px",
+                      }}
                     />
                   </div>
                 </div>
@@ -319,7 +335,10 @@ export default function BadgeGenerator() {
               <h3 className="font-mono text-[10px] text-outline uppercase tracking-widest mb-4">
                 Copy Snippet
               </h3>
-              <CodeBlock code={snippet} language={fmt === 'md' ? 'markdown' : fmt} />
+              <CodeBlock
+                code={snippet}
+                language={fmt === "md" ? "markdown" : fmt}
+              />
             </div>
 
             {/* Divider */}
@@ -328,34 +347,73 @@ export default function BadgeGenerator() {
             {/* Worker setup section */}
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <span className="material-symbols-outlined text-primary text-sm">construction</span>
-                <h2 className="font-headline text-base font-bold tracking-tighter uppercase">One-Time Worker Setup</h2>
-                <span className="font-mono text-[10px] text-outline uppercase tracking-widest">// Required</span>
+                <span className="material-symbols-outlined text-primary text-sm">
+                  construction
+                </span>
+                <h2 className="font-headline text-base font-bold tracking-tighter uppercase">
+                  One-Time Worker Setup
+                </h2>
+                <span className="font-mono text-[10px] text-outline uppercase tracking-widest">
+                  // Required
+                </span>
               </div>
 
               <p className="font-body text-xs text-outline leading-relaxed mb-6">
-                The badge endpoint is a small addition to <code className="text-primary font-mono">cloudflare/worker.js</code>.
-                Add it once, deploy, and every ranked developer on Rankistan can use their badge immediately — no changes needed per user.
+                The badge endpoint is a small addition to{" "}
+                <code className="text-primary font-mono">
+                  cloudflare/worker.js
+                </code>
+                . Add it once, deploy, and every ranked developer on Rankistan
+                can use their badge immediately — no changes needed per user.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-outline-variant mb-6">
                 {[
-                  { step: '01', icon: 'edit_note', title: 'Add handler', desc: 'Copy the code below into cloudflare/worker.js' },
-                  { step: '02', icon: 'rocket_launch', title: 'Deploy', desc: 'Run wrangler deploy from the cloudflare/ folder' },
-                  { step: '03', icon: 'shield', title: 'Use badge', desc: 'Paste your snippet into any README and you\'re live' },
+                  {
+                    step: "01",
+                    icon: "edit_note",
+                    title: "Add handler",
+                    desc: "Copy the code below into cloudflare/worker.js",
+                  },
+                  {
+                    step: "02",
+                    icon: "rocket_launch",
+                    title: "Deploy",
+                    desc: "Run wrangler deploy from the cloudflare/ folder",
+                  },
+                  {
+                    step: "03",
+                    icon: "shield",
+                    title: "Use badge",
+                    desc: "Paste your snippet into any README and you're live",
+                  },
                 ].map(({ step, icon, title, desc }, i) => (
-                  <div key={step} className={`p-5 bg-surface-container-lowest hover:bg-surface-container-low transition-colors ${i < 2 ? 'border-b md:border-b-0 md:border-r border-outline-variant' : ''}`}>
+                  <div
+                    key={step}
+                    className={`p-5 bg-surface-container-lowest hover:bg-surface-container-low transition-colors ${i < 2 ? "border-b md:border-b-0 md:border-r border-outline-variant" : ""}`}
+                  >
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-mono text-[10px] text-on-primary bg-primary px-2 py-0.5">{step}</span>
-                      <span className="material-symbols-outlined text-primary text-sm">{icon}</span>
+                      <span className="font-mono text-[10px] text-on-primary bg-primary px-2 py-0.5">
+                        {step}
+                      </span>
+                      <span className="material-symbols-outlined text-primary text-sm">
+                        {icon}
+                      </span>
                     </div>
-                    <div className="font-headline text-sm font-bold uppercase tracking-tight mb-1">{title}</div>
-                    <p className="font-body text-xs text-outline leading-relaxed">{desc}</p>
+                    <div className="font-headline text-sm font-bold uppercase tracking-tight mb-1">
+                      {title}
+                    </div>
+                    <p className="font-body text-xs text-outline leading-relaxed">
+                      {desc}
+                    </p>
                   </div>
                 ))}
               </div>
 
-              <CodeBlock code={WORKER_CODE} language="worker.js — cloudflare/" />
+              <CodeBlock
+                code={WORKER_CODE}
+                language="worker.js — cloudflare/"
+              />
             </div>
           </div>
         </div>
