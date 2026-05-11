@@ -121,10 +121,18 @@ npm run build
 
 The pipeline fetches GitHub developer data and writes it to `public/data.json`. It requires a GitHub token.
 
-1. Export your GitHub personal access token (classic or fine-grained with `read:user` scope):
+1. Set your GitHub personal access token (classic or fine-grained with `read:user` scope):
+
+   **macOS / Linux (bash/zsh):**
 
    ```bash
    export GITHUB_TOKEN=your_token_here
+   ```
+
+   **Windows (PowerShell):**
+
+   ```powershell
+   $env:GITHUB_TOKEN="your_token_here"
    ```
 
 2. Run a single incremental batch (0–23):
