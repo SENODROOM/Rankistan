@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 
-const WORKER_BASE = "https://rankistan-summary-api.academics-ali.workers.dev";
-
 const STYLES = [
   { id: "flat", label: "Flat" },
   { id: "for-the-badge", label: "For The Badge" },
@@ -9,78 +7,22 @@ const STYLES = [
   { id: "plastic", label: "Plastic" },
 ];
 
-const WORKER_CODE = `// ─── Add inside the fetch handler, BEFORE the /api/dev-summary check ────────
-if (url.pathname.startsWith('/api/badge/')) return handleBadgeRequest(request, env);
-
-// ─── Handler ──────────────────────────────────────────────────────────────────
-async function handleBadgeRequest(request, env) {
-  const username = new URL(request.url).pathname.split('/').pop()?.toLowerCase();
-  if (!username) return new Response('Not found', { status: 404 });
-
-  const corsOrigin = resolveCorsOrigin(request, env);
-  const headers = {
-    ...buildCorsHeaders(corsOrigin),
-    'Content-Type': 'application/json',
-    'Cache-Control': 'public, max-age=300',
-  };
-
-  try {
-    const res = await fetch('https://rankistan.dev/data.json', {
-      cf: { cacheTtl: 300 },
-    });
-    const data = await res.json();
-    const dev = (data.leaderboard || []).find(
-      (d) => d.username?.toLowerCase() === username,
-    );
-
-    if (!dev) {
-      return new Response(
-        JSON.stringify({ schemaVersion: 1, label: 'Rankistan', message: 'not ranked', color: 'lightgrey' }),
-        { headers },
-      );
-    }
-
-    return new Response(
-      JSON.stringify({
-        schemaVersion: 1,
-        label: 'Rankistan',
-        message: 'rank #' + dev.rank,
-        color: '1a7f4e',
-        labelColor: '0f6e56',
-        namedLogo: 'github',
-        logoColor: 'white',
-        cacheSeconds: 300,
-      }),
-      { headers },
-    );
-  } catch {
-    return new Response(
-      JSON.stringify({ schemaVersion: 1, label: 'Rankistan', message: 'error', color: 'red' }),
-      { status: 502, headers },
-    );
-  }
-}`;
-
-function getBadgeUrl(username, style) {
-  const u = (username || "yourusername").trim().toLowerCase();
-  const endpoint = encodeURIComponent(`https://rankistan.dev/badges/${u}.json`);
+// Bake the rank number directly into a static shields.io badge URL.
+// No dynamic JSON query, no worker — always works.
+function buildBadgeUrl(rank, style) {
+  const message =
+    rank != null ? encodeURIComponent(`#${rank}`) : "not%20ranked";
   return (
-    `https://img.shields.io/badge/dynamic/json` +
-    `?url=${endpoint}` +
-    `&query=%24.rank` +
-    `&label=Rankistan` +
-    `&prefix=%23` +
-    `&color=1a7f4e` +
-    `&labelColor=0f6e56` +
+    `https://img.shields.io/badge/Rankistan-${message}-1a7f4e` +
+    `?labelColor=0f6e56` +
     `&style=${style}` +
     `&logo=github` +
-    `&logoColor=white` +
-    `&cacheSeconds=300`
+    `&logoColor=white`
   );
 }
 
-function getSnippet(username, style, fmt) {
-  const img = getBadgeUrl(username, style);
+function getSnippet(rank, style, username, fmt) {
+  const img = buildBadgeUrl(rank, style);
   const link = "https://rankistan.dev";
   const alt = "Rankistan rank badge";
   if (fmt === "md") return `[![${alt}](${img})](${link})`;
@@ -141,18 +83,56 @@ export default function BadgeGenerator() {
   const [username, setUsername] = useState("");
   const [style, setStyle] = useState("flat");
   const [fmt, setFmt] = useState("md");
+  const [rank, setRank] = useState(null);
+  const [lookupState, setLookupState] = useState("idle"); // idle | loading | found | notfound | error
   const [badgeLoaded, setBadgeLoaded] = useState(false);
   const [badgeError, setBadgeError] = useState(false);
   const inputRef = useRef(null);
+  const debounceRef = useRef(null);
 
-  const displayUser = username.trim() || "yourusername";
-  const badgeUrl = getBadgeUrl(displayUser, style);
-  const snippet = getSnippet(displayUser, style, fmt);
+  const displayUser = username.trim();
+
+  // Fetch data.json and find the user's rank whenever username changes
+  useEffect(() => {
+    if (!displayUser) {
+      setRank(null);
+      setLookupState("idle");
+      return;
+    }
+
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLookupState("loading");
+      setRank(null);
+      try {
+        const res = await fetch("https://rankistan.dev/data.json", {
+          cache: "no-store",
+        });
+        const data = await res.json();
+        const dev = (data.leaderboard || []).find(
+          (d) => d.username?.toLowerCase() === displayUser.toLowerCase(),
+        );
+        if (dev) {
+          setRank(dev.rank);
+          setLookupState("found");
+        } else {
+          setLookupState("notfound");
+        }
+      } catch {
+        setLookupState("error");
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [displayUser]);
 
   useEffect(() => {
     setBadgeLoaded(false);
     setBadgeError(false);
-  }, [username, style]);
+  }, [rank, style]);
+
+  const badgeUrl = buildBadgeUrl(rank, style);
+  const snippet = getSnippet(rank, style, displayUser, fmt);
 
   return (
     <main className="min-h-screen relative overflow-hidden">
@@ -193,6 +173,22 @@ export default function BadgeGenerator() {
                   autoComplete="off"
                   spellCheck={false}
                 />
+              </div>
+              <div className="mt-2 font-mono text-[10px] uppercase tracking-widest h-4">
+                {lookupState === "loading" && (
+                  <span className="text-outline animate-pulse">
+                    Looking up rank...
+                  </span>
+                )}
+                {lookupState === "found" && (
+                  <span className="text-tertiary">✓ Rank #{rank} found</span>
+                )}
+                {lookupState === "notfound" && (
+                  <span className="text-error">Not found in leaderboard</span>
+                )}
+                {lookupState === "error" && (
+                  <span className="text-error">Failed to fetch data</span>
+                )}
               </div>
             </div>
 
@@ -256,10 +252,10 @@ export default function BadgeGenerator() {
                 </span>
               </div>
               {[
-                ["1", "Your README loads the badge URL from shields.io"],
-                ["2", "Shields.io calls the Rankistan Worker endpoint"],
-                ["3", "Worker reads your rank from data.json (cached 5 min)"],
-                ["4", "Badge updates automatically every leaderboard cycle"],
+                ["1", "Enter your GitHub username"],
+                ["2", "Your rank is fetched live from rankistan.dev/data.json"],
+                ["3", "A badge URL is generated with your rank baked in"],
+                ["4", "Copy the snippet and paste it into your README"],
               ].map(([n, text]) => (
                 <div key={n} className="flex items-start gap-3">
                   <span className="font-mono text-[10px] text-on-primary bg-primary px-1.5 py-0.5 shrink-0">
@@ -280,28 +276,44 @@ export default function BadgeGenerator() {
               <h3 className="font-mono text-[10px] text-outline uppercase tracking-widest mb-4">
                 Live Preview
               </h3>
-              <div className="border border-outline-variant bg-surface-container-lowest p-6 flex items-center justify-center min-h-[80px]">
-                {!badgeError ? (
-                  <img
-                    key={badgeUrl}
-                    src={badgeUrl}
-                    alt="Rankistan rank badge preview"
-                    className={`transition-opacity duration-300 ${badgeLoaded ? "opacity-100" : "opacity-0"}`}
-                    onLoad={() => setBadgeLoaded(true)}
-                    onError={() => setBadgeError(true)}
-                    style={{
-                      height: style === "for-the-badge" ? "28px" : "20px",
-                    }}
-                  />
+              <div className="border border-outline-variant bg-surface-container-lowest p-6 flex items-center justify-center min-h-[80px] relative">
+                {lookupState === "loading" ? (
+                  <span className="font-mono text-[10px] text-outline uppercase tracking-widest animate-pulse">
+                    Looking up rank...
+                  </span>
+                ) : lookupState === "notfound" ? (
+                  <span className="font-mono text-xs text-error">
+                    User not found in leaderboard
+                  </span>
+                ) : lookupState === "error" ? (
+                  <span className="font-mono text-xs text-error">
+                    Failed to load data.json
+                  </span>
                 ) : (
-                  <span className="font-mono text-xs text-outline">
-                    Badge preview unavailable — shields.io may be slow to load
-                  </span>
-                )}
-                {!badgeLoaded && !badgeError && (
-                  <span className="font-mono text-[10px] text-outline uppercase tracking-widest animate-pulse absolute">
-                    Loading...
-                  </span>
+                  <>
+                    {!badgeError ? (
+                      <img
+                        key={badgeUrl}
+                        src={badgeUrl}
+                        alt="Rankistan rank badge preview"
+                        className={`transition-opacity duration-300 ${badgeLoaded ? "opacity-100" : "opacity-0"}`}
+                        onLoad={() => setBadgeLoaded(true)}
+                        onError={() => setBadgeError(true)}
+                        style={{
+                          height: style === "for-the-badge" ? "28px" : "20px",
+                        }}
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-outline">
+                        Badge preview unavailable
+                      </span>
+                    )}
+                    {!badgeLoaded && !badgeError && (
+                      <span className="font-mono text-[10px] text-outline uppercase tracking-widest animate-pulse absolute">
+                        Loading...
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -312,18 +324,18 @@ export default function BadgeGenerator() {
                   <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
                   <div className="w-3 h-3 rounded-full bg-[#27c840]" />
                   <span className="font-mono text-[10px] text-[#484f58] ml-2">
-                    README.md — github.com/{displayUser}
+                    README.md — github.com/{displayUser || "yourusername"}
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-[#21262d] border border-[#30363d] flex items-center justify-center shrink-0">
                     <span className="font-mono text-[10px] text-[#8b949e]">
-                      {displayUser.slice(0, 2).toUpperCase()}
+                      {(displayUser || "YO").slice(0, 2).toUpperCase()}
                     </span>
                   </div>
                   <div>
                     <p className="font-mono text-sm text-[#e6edf3] mb-2">
-                      {displayUser}
+                      {displayUser || "yourusername"}
                     </p>
                     <img
                       src={badgeUrl}
@@ -337,90 +349,21 @@ export default function BadgeGenerator() {
               </div>
             </div>
 
-            {/* Snippet */}
+            {/* Snippet — only show when rank is found */}
             <div>
               <h3 className="font-mono text-[10px] text-outline uppercase tracking-widest mb-4">
                 Copy Snippet
               </h3>
-              <CodeBlock
-                code={snippet}
-                language={fmt === "md" ? "markdown" : fmt}
-              />
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-outline-variant" />
-
-            {/* Worker setup section */}
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="material-symbols-outlined text-primary text-sm">
-                  construction
-                </span>
-                <h2 className="font-headline text-base font-bold tracking-tighter uppercase">
-                  One-Time Worker Setup
-                </h2>
-                <span className="font-mono text-[10px] text-outline uppercase tracking-widest">
-                  // Required
-                </span>
-              </div>
-
-              <p className="font-body text-xs text-outline leading-relaxed mb-6">
-                The badge endpoint is a small addition to{" "}
-                <code className="text-primary font-mono">
-                  cloudflare/worker.js
-                </code>
-                . Add it once, deploy, and every ranked developer on Rankistan
-                can use their badge immediately — no changes needed per user.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-outline-variant mb-6">
-                {[
-                  {
-                    step: "01",
-                    icon: "edit_note",
-                    title: "Add handler",
-                    desc: "Copy the code below into cloudflare/worker.js",
-                  },
-                  {
-                    step: "02",
-                    icon: "rocket_launch",
-                    title: "Deploy",
-                    desc: "Run wrangler deploy from the cloudflare/ folder",
-                  },
-                  {
-                    step: "03",
-                    icon: "shield",
-                    title: "Use badge",
-                    desc: "Paste your snippet into any README and you're live",
-                  },
-                ].map(({ step, icon, title, desc }, i) => (
-                  <div
-                    key={step}
-                    className={`p-5 bg-surface-container-lowest hover:bg-surface-container-low transition-colors ${i < 2 ? "border-b md:border-b-0 md:border-r border-outline-variant" : ""}`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-mono text-[10px] text-on-primary bg-primary px-2 py-0.5">
-                        {step}
-                      </span>
-                      <span className="material-symbols-outlined text-primary text-sm">
-                        {icon}
-                      </span>
-                    </div>
-                    <div className="font-headline text-sm font-bold uppercase tracking-tight mb-1">
-                      {title}
-                    </div>
-                    <p className="font-body text-xs text-outline leading-relaxed">
-                      {desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <CodeBlock
-                code={WORKER_CODE}
-                language="worker.js — cloudflare/"
-              />
+              {lookupState === "found" ? (
+                <CodeBlock
+                  code={snippet}
+                  language={fmt === "md" ? "markdown" : fmt}
+                />
+              ) : (
+                <div className="border border-outline-variant bg-surface-container-lowest p-4 font-mono text-[10px] text-outline uppercase tracking-widest">
+                  Enter your username above to generate your snippet
+                </div>
+              )}
             </div>
           </div>
         </div>
