@@ -61,14 +61,21 @@ async function handleBadgeRequest(request, env) {
   }
 }`;
 
-// The worker returns shields.io Endpoint schema (schemaVersion: 1),
-// so we must use /endpoint?url=... — NOT /badge/dynamic/json.
-// Dynamic JSON and Endpoint are two different shields.io badge types.
 function getBadgeUrl(username, style) {
-  const u = encodeURIComponent((username || "yourusername").trim());
-  const endpoint = encodeURIComponent(`${WORKER_BASE}/api/badge/${u}`);
+  const u = (username || "yourusername").trim().toLowerCase();
+  const endpoint = encodeURIComponent(`https://rankistan.dev/badges/${u}.json`);
   return (
-    `https://img.shields.io/endpoint` + `?url=${endpoint}` + `&style=${style}`
+    `https://img.shields.io/badge/dynamic/json` +
+    `?url=${endpoint}` +
+    `&query=%24.rank` +
+    `&label=Rankistan` +
+    `&prefix=%23` +
+    `&color=1a7f4e` +
+    `&labelColor=0f6e56` +
+    `&style=${style}` +
+    `&logo=github` +
+    `&logoColor=white` +
+    `&cacheSeconds=300`
   );
 }
 
