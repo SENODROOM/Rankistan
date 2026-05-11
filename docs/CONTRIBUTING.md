@@ -49,7 +49,7 @@ Optional (only needed if working on the Cloudflare Worker):
 3. Add the upstream remote so you can pull in future changes:
 
    ```bash
-   git remote add upstream https://github.com/<original-owner>/Rankistan.git
+   git remote add upstream https://github.com/Sudo-Ali-Dev/Rankistan.git
    ```
 
 ---
