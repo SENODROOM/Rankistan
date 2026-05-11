@@ -14,7 +14,10 @@ export default function Header({
   };
 
   return (
-    <nav className="relative bg-[#10141a] border-b border-[#414752] w-full h-16 sticky top-0 z-50">
+    <nav
+      aria-label="Main navigation"
+      className="bg-[#10141a] border-b border-[#414752] w-full h-16 sticky top-0 z-50"
+    >
       <div className="relative z-20 flex h-16 w-full min-w-0 items-center justify-between px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-4 md:gap-8">
           <button
